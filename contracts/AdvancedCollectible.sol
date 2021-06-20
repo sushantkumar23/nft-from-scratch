@@ -29,19 +29,27 @@ contract AdvancedCollectible is ERC721, VRFConsumerBase {
     function createCollectible(uint256 userProvidedSeed, string memory tokenURI) public returns(bytes32) {
         bytes32 requestId = requestRandomness(keyhash, fee, userProvidedSeed);
         requestIdToSender[requestId] = msg.sender;
-        requestIdToTokenURI[requestIdToSender] = tokenURI;
+        requestIdToTokenURI[requestId] = tokenURI;
         emit requestedCollectible(requestId);
     }
 
-    function fulfillRandomness(bytes requestId, uint256 randomNumber) internal override{
+    function fulfillRandomness(bytes32 requestId, uint256 randomNumber) internal override{
         address dogOwner = requestIdToSender[requestId];
         string memory tokenURI = requestIdToTokenURI[requestId];
-        uint156 newItemId = tokenCounter;
+        uint256 newItemId = tokenCounter;
         _safeMint(dogOwner, newItemId);
         _setTokenURI(newItemId, tokenURI);
         Breed breed = Breed(randomNumber % 3);
         tokenIdToBreed[newItemId] = breed;
         requestIdToTokenId[requestId] = newItemId;
         tokenCounter = tokenCounter + 1;
+    }
+
+    function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
+        require(
+            _isApprovedOrOwner(_msgSender(), tokenId),
+            "ERC721: transfer caller is not owner nor approved"
+        );
+        _setTokenURI(tokenId, _tokenURI);
     }
 }
